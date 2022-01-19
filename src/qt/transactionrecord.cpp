@@ -46,7 +46,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     bool any_from_me = false;
     std::set<CAsset> assets_issued_to_me_only;
     if (wtx.is_coinbase) {
-        fAllFromMe = ISMINE_NO;
+        fAllFromMe = wallet::ISMINE_NO;
     }
     else
     {

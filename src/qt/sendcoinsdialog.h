@@ -66,7 +66,7 @@ private:
     WalletModel *model;
     std::unique_ptr<wallet::CCoinControl> m_coin_control;
     std::unique_ptr<WalletModelTransaction> m_current_transaction;
-    std::unique_ptr<BlindDetails> m_current_blind_details;
+    std::unique_ptr<wallet::BlindDetails> m_current_blind_details;
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
     const PlatformStyle *platformStyle;

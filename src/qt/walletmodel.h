@@ -101,10 +101,10 @@ public:
     };
 
     // prepare transaction for getting txfee before sending coins
-    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, BlindDetails *blind_details, const wallet::CCoinControl& coinControl);
+    SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, wallet::BlindDetails *blind_details, const wallet::CCoinControl& coinControl);
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(WalletModelTransaction &transaction, BlindDetails *blind_details);
+    SendCoinsReturn sendCoins(WalletModelTransaction &transaction, wallet::BlindDetails *blind_details);
 
     // Wallet encryption
     bool setWalletEncrypted(const SecureString& passphrase);

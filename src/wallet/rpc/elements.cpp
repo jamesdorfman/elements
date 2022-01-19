@@ -1357,7 +1357,7 @@ static CTransactionRef SendGenerationTransaction(const CScript& asset_script, co
     bilingual_str error;
     FeeCalculation fee_calc_out;
     CCoinControl dummy_control;
-    BlindDetails blind_details;
+    wallet::BlindDetails blind_details;
     CTransactionRef tx_ref;
     if (!CreateTransaction(*pwallet, vecSend, tx_ref, nFeeRequired, nChangePosRet, error, dummy_control, fee_calc_out, true, &blind_details, issuance_details)) {
         throw JSONRPCError(RPC_WALLET_ERROR, error.original);

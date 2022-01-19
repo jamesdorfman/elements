@@ -15,6 +15,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/recentrequeststablemodel.h>
 #include <qt/sendcoinsdialog.h>
+#include <qt/sendcoinsrecipient.h>
 #include <qt/transactiontablemodel.h>
 
 #include <interfaces/handler.h>
@@ -38,12 +39,11 @@
 #include <QTimer>
 
 
-#define SendCoinsRecipient SendAssetsRecipient
 using wallet::CCoinControl;
 using wallet::CRecipient;
 using wallet::DEFAULT_DISABLE_WALLET;
 
-SendAssetsRecipient::SendAssetsRecipient(SendCoinsRecipient r) :
+SendAssetsRecipient::SendAssetsRecipient(SendCoinsRecipient &r) :
     address(r.address),
     label(r.label),
     asset(Params().GetConsensus().pegged_asset),
@@ -54,6 +54,8 @@ SendAssetsRecipient::SendAssetsRecipient(SendCoinsRecipient r) :
     fSubtractFeeFromAmount(r.fSubtractFeeFromAmount)
 {
 }
+
+#define SendCoinsRecipient SendAssetsRecipient
 
 WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, ClientModel& client_model, const PlatformStyle *platformStyle, QObject *parent) :
     QObject(parent),
@@ -180,7 +182,7 @@ bool WalletModel::validateAddress(const QString &address)
     return IsValidDestinationString(address.toStdString());
 }
 
-WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, BlindDetails *blind_details, const CCoinControl& coinControl)
+WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, wallet::BlindDetails *blind_details, const CCoinControl& coinControl)
 {
     CAmountMap total;
     bool fSubtractFeeFromAmount = false;
@@ -273,7 +275,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     return SendCoinsReturn(OK);
 }
 
-WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction, BlindDetails *blind_details)
+WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction, wallet::BlindDetails *blind_details)
 {
     QByteArray transaction_array; /* store serialized transaction */
 
