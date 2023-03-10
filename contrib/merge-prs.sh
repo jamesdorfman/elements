@@ -129,9 +129,9 @@ do
         # NB: this will fail the first time because there's not yet a makefile
         quietly make distclean || true
         quietly git -C "$WORKTREE" clean -xf
-        echo "autogen & configure"
+        echo "autogen & configure LDFLAGS="-L/home/james/bdb4/lib/" CPPFLAGS="-I/home/james/bdb4/include/""
         quietly ./autogen.sh
-        quietly ./configure --with-incompatible-bdb
+        quietly ./configure --with-incompatible-bdb LDFLAGS="-L/home/james/bdb4/lib/" CPPFLAGS="-I/home/james/bdb4/include/"
         # The following is an expansion of `make check` that skips the libsecp
         # tests and also the benchmarks (though it does build them!)
         echo "Building"
@@ -154,7 +154,7 @@ do
         echo "Building for fuzz"
         quietly ./autogen.sh
         # TODO turn on `,integer` after this rebase
-        quietly ./configure --with-incompatible-bdb --enable-fuzz --with-sanitizers=address,fuzzer,undefined CC=clang CXX=clang++
+        quietly ./configure --with-incompatible-bdb --enable-fuzz --with-sanitizers=address,fuzzer,undefined CC=clang CXX=clang++ LDFLAGS="-L/home/james/bdb4/lib/" CPPFLAGS="-I/home/james/bdb4/include/"
         quietly make -j"$PARALLEL_BUILD" -k
         echo "Fuzzing"
         quietly ./test/fuzz/test_runner.py -j"$PARALLEL_FUZZ" ~/code/bitcoin/qa-assets/fuzz_seed_corpus/
