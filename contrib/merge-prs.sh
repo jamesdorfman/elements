@@ -64,6 +64,8 @@ if [[ "$1" != "list-only" ]]; then
     fi
 fi
 
+#if [ $(git -C "$WORKTREE" rev-parse HEAD) == e295862057f40288ae322bc34726c6caa290659c ]; then echo "Removing two cherry-picked commits"; git reset --hard HEAD~2; fi
+
 if [[ "$SKIP_MERGE" == "1" ]]; then
     # Rewind so the first loop iteration is the last one that we already merged.
     BASE="$BASE^1"
@@ -72,6 +74,7 @@ fi
 ## Get full list of merges
 ELT_COMMITS=$(git -C "$WORKTREE" log "$ELEMENTS_UPSTREAM" --not $BASE --merges --first-parent --pretty='format:%ct %cI %h Elements %s')
 BTC_COMMITS=$(git -C "$WORKTREE" log "$BITCOIN_UPSTREAM" --not $BASE --merges --first-parent --pretty='format:%ct %cI %h Bitcoin %s')
+	
 
 #ELT_COMMITS=
 #BTC_COMMITS=$(git -C "$WORKTREE" log v0.21.0 --not $BASE --merges --first-parent --pretty='format:%ct %cI %h Bitcoin %s')
@@ -92,7 +95,7 @@ quietly () {
 
 ## Sort by unix timestamp and iterate over them
 #echo "$ELT_COMMITS" "$BTC_COMMITS" | sort -n -k1 | while read line
-echo "$ELT_COMMITS" | tac | while read line
+echo "$BTC_COMMITS" | tac | while read line
 do
     echo
     echo "=-=-=-=-=-=-=-=-=-=-="
@@ -124,6 +127,12 @@ do
     fi
 
     if [[ "$DO_BUILD" == "1" ]]; then
+
+        git -C "$WORKTREE" cherry-pick c08430ab7c89b441cb7fd72da239be7dacb2b1ad
+        git -C "$WORKTREE" cherry-pick e295862057f40288ae322bc34726c6caa290659c
+        git -C "$WORKTREE" cherry-pick ad3e9e1
+        git -C "$WORKTREE" cherry-pick 069bec1
+
         # Clean up
         echo "Cleaning up"
         # NB: this will fail the first time because there's not yet a makefile
@@ -158,6 +167,7 @@ do
         quietly make -j"$PARALLEL_BUILD" -k
         echo "Fuzzing"
         quietly ./test/fuzz/test_runner.py -j"$PARALLEL_FUZZ" ~/code/bitcoin/qa-assets/fuzz_seed_corpus/
+        git reset --hard HEAD~4
     fi
 
     if [[ "$KEEP_GOING" == "0" ]]; then
