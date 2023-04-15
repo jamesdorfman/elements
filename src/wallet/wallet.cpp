@@ -1317,7 +1317,9 @@ CAmountMap CWallet::GetDebit(const CTxIn &txin, const isminefilter& filter) cons
             if (txin.prevout.n < prev.tx->vout.size())
                 if (IsMine(prev.tx->vout[txin.prevout.n]) & filter) {
                     CAmountMap amounts;
-                    amounts[prev.GetOutputAsset(txin.prevout.n)] = std::max<CAmount>(0, prev.GetOutputValueOut(txin.prevout.n));
+                    CAsset asset = this->GetOutputAsset(prev, txin.prevout.n);
+                    CAmount amount = this->GetOutputValueOut(prev, txin.prevout.n);
+                    amounts[asset] = std::max<CAmount>(0, amount);
                     return amounts;
                 }
         }
