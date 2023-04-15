@@ -11,7 +11,7 @@
 isminetype InputIsMine(const CWallet& wallet, const CTxIn &txin)
 {
     AssertLockHeld(wallet.cs_wallet);
-    return IsMine(wallet, txin.prevout);
+    return InputIsMine(wallet, txin.prevout);
 }
 
 isminetype InputIsMine(const CWallet& wallet, const COutPoint &outpoint)
@@ -48,15 +48,15 @@ bool AllInputsMine(const CWallet& wallet, const CTransaction& tx, const isminefi
     return true;
 }
 
-CAmountMap OutputGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter) const {
+CAmountMap OutputGetCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter) {
     CAmountMap nCredit;
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i) {
         if (wallet.IsMine(wtx.tx->vout[i]) & filter) {
-            CAmount credit = std::max<CAmount>(0, wtx.GetOutputValueOut(i));
+            CAmount credit = std::max<CAmount>(0, wallet.GetOutputValueOut(wtx, i));
             if (!MoneyRange(credit))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-            nCredit[wtx.GetOutputAsset(i)] += credit;
+            nCredit[wallet.GetOutputAsset(wtx, i)] += credit;
             if (!MoneyRange(nCredit))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
@@ -64,11 +64,11 @@ CAmountMap OutputGetCredit(const CWallet& wallet, const CWalletTx& wtx, const is
     return nCredit;
 }
 
-CAmountMap CWallet::GetChange(const CWalletTx& wtx) const {
+CAmountMap GetChange(const CWallet& wallet, const CWalletTx& wtx) {
     CAmountMap nChange;
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i) {
-        if (IsChange(wtx.tx->vout[i])) {
-            CAmount change = wtx.GetOutputValueOut(i);
+        if (OutputIsChange(wallet, wtx.tx->vout[i])) {
+            CAmount change = wallet.GetOutputValueOut(wtx, i);
             if (change < 0) {
                 continue;
             }
@@ -76,7 +76,7 @@ CAmountMap CWallet::GetChange(const CWalletTx& wtx) const {
             if (!MoneyRange(change))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-            nChange[wtx.GetOutputAsset(i)] += change;
+            nChange[wallet.GetOutputAsset(wtx, i)] += change;
             if (!MoneyRange(nChange))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
@@ -111,7 +111,7 @@ bool ScriptIsChange(const CWallet& wallet, const CScript& script)
     return false;
 }
 
-CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout)
+CAmountMap OutputGetChange(const CWallet& wallet, const CTxOut& txout)
 {
     AssertLockHeld(wallet.cs_wallet);
 
@@ -122,7 +122,7 @@ CAmount OutputGetChange(const CWallet& wallet, const CTxOut& txout)
     return (OutputIsChange(wallet, txout) ? change : CAmountMap());
 }
 
-CAmount TxGetChange(const CWallet& wallet, const CTransaction& tx)
+CAmountMap TxGetChange(const CWallet& wallet, const CTransaction& tx)
 {
     LOCK(wallet.cs_wallet);
     CAmountMap nChange;

@@ -3445,10 +3445,10 @@ unsigned int CWalletTx::GetPseudoInputOffset(const unsigned int input_index, con
     return mapvalue_loc;
 }
 
-void CWalletTx::SetBlindingData(const unsigned int map_index, const CPubKey& blinding_pubkey, const CAmount value, const uint256& value_factor, const CAsset& asset, const uint256& asset_factor)
+void CWallet::SetBlindingData(const CWalletTx& wtx, const unsigned int map_index, const CPubKey& blinding_pubkey, const CAmount value, const uint256& value_factor, const CAsset& asset, const uint256& asset_factor)
 {
     if (mapValue["blindingdata"].size() < (map_index + 1) * 138) {
-        mapValue["blindingdata"].resize((tx->vout.size() + GetNumIssuances(*tx)) * 138);
+        mapValue["blindingdata"].resize((wtx->vout.size() + GetNumIssuances(*tx)) * 138);
     }
 
     unsigned char* it = (unsigned char*)(&mapValue["blindingdata"][0]) + 138 * map_index;
@@ -3466,7 +3466,7 @@ void CWalletTx::SetBlindingData(const unsigned int map_index, const CPubKey& bli
 
 }
 
-void CWalletTx::GetBlindingData(const unsigned int map_index, const std::vector<unsigned char>& vchRangeproof, const CConfidentialValue& conf_value, const CConfidentialAsset& conf_asset, const CConfidentialNonce nonce, const CScript& scriptPubKey, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const
+void CWallet::GetBlindingData(const CWalletTx& wtx, const unsigned int map_index, const std::vector<unsigned char>& vchRangeproof, const CConfidentialValue& conf_value, const CConfidentialAsset& conf_asset, const CConfidentialNonce nonce, const CScript& scriptPubKey, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const
 {
     // Blinding data is cached in a serialized record mapWallet["blindingdata"].
     // It contains a concatenation byte vectors, 74 bytes per txout or pseudo-input.
@@ -3480,7 +3480,7 @@ void CWalletTx::GetBlindingData(const unsigned int map_index, const std::vector<
     // This is really ugly, and should use CDataStream serialization instead.
 
     if (mapValue["blindingdata"].size() < (map_index + 1) * 138) {
-        mapValue["blindingdata"].resize((tx->vout.size() + GetNumIssuances(*tx)) * 138);
+        mapValue["blindingdata"].resize((tx->vout.size() + GetNumIssuances(*wtx)) * 138);
     }
 
     unsigned char* it = (unsigned char*)(&mapValue["blindingdata"][0]) + 138 * map_index;
@@ -3522,10 +3522,10 @@ void CWalletTx::GetBlindingData(const unsigned int map_index, const std::vector<
     if (asset_out) *asset_out = asset_tag;
 }
 
-void CWalletTx::GetNonIssuanceBlindingData(const unsigned int output_index, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const {
-    assert(output_index < tx->vout.size());
-    const CTxOut& out = tx->vout[output_index];
-    const CTxWitness& wit = tx->witness;
+void CWallet::GetNonIssuanceBlindingData(const CWalletTx& wtx, const unsigned int output_index, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const {
+    assert(output_index < wtx->vout.size());
+    const CTxOut& out = wtx->vout[output_index];
+    const CTxWitness& wit = wtx->witness;
     GetBlindingData(output_index, wit.vtxoutwit.size() <= output_index ? std::vector<unsigned char>() : wit.vtxoutwit[output_index].vchRangeproof, out.nValue, out.nAsset, out.nNonce, out.scriptPubKey,
         blinding_pubkey_out, value_out, value_factor_out, asset_out, asset_factor_out);
 }
@@ -3736,39 +3736,39 @@ ScriptPubKeyMan* CWallet::AddWalletDescriptor(WalletDescriptor& desc, const Flat
     return spk_man;
 }
 
-CAmount CWalletTx::GetOutputValueOut(unsigned int output_index) const {
+CAmount CWalletTx::GetOutputValueOut(const CWalletTx& wtx, unsigned int output_index) const {
     CAmount ret;
-    GetNonIssuanceBlindingData(output_index, nullptr, &ret, nullptr, nullptr, nullptr);
+    GetNonIssuanceBlindingData(wtx, output_index, nullptr, &ret, nullptr, nullptr, nullptr);
     return ret;
 }
 
-uint256 CWalletTx::GetOutputAmountBlindingFactor(unsigned int output_index) const {
+uint256 CWalletTx::GetOutputAmountBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const {
     uint256 ret;
-    GetNonIssuanceBlindingData(output_index, nullptr, nullptr, &ret, nullptr, nullptr);
+    GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, &ret, nullptr, nullptr);
     return ret;
 }
 
-uint256 CWalletTx::GetOutputAssetBlindingFactor(unsigned int output_index) const {
+uint256 CWalletTx::GetOutputAssetBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const {
     uint256 ret;
-    GetNonIssuanceBlindingData(output_index, nullptr, nullptr, nullptr, nullptr, &ret);
+    GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, nullptr, nullptr, &ret);
     return ret;
 }
 
-CAsset CWalletTx::GetOutputAsset(unsigned int output_index) const {
+CAsset CWalletTx::GetOutputAsset(const CWalletTx& wtx, unsigned int output_index) const {
     CAsset ret;
-    GetNonIssuanceBlindingData(output_index, nullptr, nullptr, nullptr, &ret, nullptr);
+    GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, nullptr, &ret, nullptr);
     return ret;
 }
 
-CPubKey CWalletTx::GetOutputBlindingPubKey(unsigned int output_index) const {
+CPubKey CWalletTx::GetOutputBlindingPubKey(const CWalletTx& wtx, unsigned int output_index) const {
     CPubKey ret;
-    GetNonIssuanceBlindingData(output_index, &ret, nullptr, nullptr, nullptr, nullptr);
+    GetNonIssuanceBlindingData(wtx, output_index, &ret, nullptr, nullptr, nullptr, nullptr);
     return ret;
 }
 
-void CWalletTx::GetIssuanceAssets(unsigned int input_index, CAsset* out_asset, CAsset* out_reissuance_token) const {
-    assert(input_index < tx->vin.size());
-    const CAssetIssuance& issuance = tx->vin[input_index].assetIssuance;
+void CWallet::GetIssuanceAssets(const CWalletTx& wtx, unsigned int input_index, CAsset* out_asset, CAsset* out_reissuance_token) const {
+    assert(input_index < wtx->vin.size());
+    const CAssetIssuance& issuance = wtx->vin[input_index].assetIssuance;
 
     if (out_asset && issuance.nAmount.IsNull()) {
         out_asset->SetNull();
@@ -3782,7 +3782,7 @@ void CWalletTx::GetIssuanceAssets(unsigned int input_index, CAsset* out_asset, C
 
     if (issuance.assetBlindingNonce.IsNull()) {
         uint256 entropy;
-        GenerateAssetEntropy(entropy, tx->vin[input_index].prevout, issuance.assetEntropy);
+        GenerateAssetEntropy(entropy, wtx->vin[input_index].prevout, issuance.assetEntropy);
         if (out_reissuance_token) {
             CalculateReissuanceToken(*out_reissuance_token, entropy, issuance.nAmount.IsCommitment());
         }
