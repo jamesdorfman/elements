@@ -769,11 +769,11 @@ static CAmountMap GetReceived(const CWallet& wallet, const UniValue& params, boo
             if (ExtractDestination(txout.scriptPubKey, address) && wallet.IsMine(address) && address_set.count(address)) {
                 if (wallet.GetTxDepthInMainChain(wtx) >= min_depth) {
                     CAmountMap wtxValue;
-                    CAmount amt = wtx.GetOutputValueOut(i);
+                    CAmount amt = wtx.GetOutputValueOut(wallet, i);
                     if (amt < 0) {
                         continue;
                     }
-                    wtxValue[wtx.GetOutputAsset(i)] = amt;
+                    wtxValue[wtx.GetOutputAsset(wallet, i)] = amt;
                     amounts += wtxValue;
                 }
             }
@@ -1259,17 +1259,17 @@ static UniValue ListReceived(const CWallet& wallet, const UniValue& params, bool
             if(!(mine & filter))
                 continue;
 
-            CAmount amt = wtx.GetOutputValueOut(index);
+            CAmount amt = wtx.GetOutputValueOut(wallet, index);
             if (amt < 0) {
                 continue;
             }
 
-            if (strasset != "" && wtx.GetOutputAsset(index) != asset) {
+            if (strasset != "" && wtx.GetOutputAsset(wallet, index) != asset) {
                 continue;
             }
 
             tallyitem& item = mapTally[address];
-            item.mapAmount[wtx.GetOutputAsset(index)] += amt;
+            item.mapAmount[wtx.GetOutputAsset(wallet, index)] += amt;
             item.nConf = std::min(item.nConf, nDepth);
             item.txids.push_back(wtx.GetHash());
             if (mine & ISMINE_WATCH_ONLY)
@@ -3283,8 +3283,8 @@ static RPCHelpMan listunspent()
             continue;
 
         // Elements
-        CAmount amount = out.tx->GetOutputValueOut(out.i);
-        CAsset assetid = out.tx->GetOutputAsset(out.i);
+        CAmount amount = out.tx->GetOutputValueOut(*pwallet, out.i);
+        CAsset assetid = out.tx->GetOutputAsset(*pwallet, out.i);
         // Only list known outputs that match optional filter
         if (g_con_elementsmode && (amount < 0 || assetid.IsNull())) {
             pwallet->WalletLogPrintf("Unable to unblind output: %s:%d\n", out.tx->tx->GetHash().GetHex(), out.i);
@@ -3351,8 +3351,8 @@ static RPCHelpMan listunspent()
             if (tx_out.nValue.IsCommitment()) {
                 entry.pushKV("amountcommitment", HexStr(tx_out.nValue.vchCommitment));
             }
-            entry.pushKV("amountblinder", pwallet->GetOutputAmountBlindingFactor(*out.tx, out.i).ToString());
-            entry.pushKV("assetblinder", pwallet->GetOutputAssetBlindingFactor(*out.tx, out.i).ToString());
+            entry.pushKV("amountblinder", out.tx->GetOutputAmountBlindingFactor(*pwallet, out.i).ToString());
+            entry.pushKV("assetblinder", out.tx->GetOutputAssetBlindingFactor(*pwallet, out.i).ToString());
         }
         entry.pushKV("confirmations", out.nDepth);
         entry.pushKV("spendable", out.fSpendable);
@@ -6489,10 +6489,10 @@ static RPCHelpMan blindrawtransaction()
         if (prevout.n >= it->second.tx->vout.size()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter: transaction spends non-existing output");
         }
-        input_blinds.push_back(pwallet->GetOutputAmountBlindingFactor(it->second, prevout.n));
-        input_asset_blinds.push_back(pwallet->GetOutputAssetBlindingFactor(it->second, prevout.n));
-        input_assets.push_back(it->second.GetOutputAsset(prevout.n));
-        input_amounts.push_back(it->second.GetOutputValueOut(prevout.n));
+        input_blinds.push_back(it->second.GetOutputAmountBlindingFactor(*pwallet, prevout.n));
+        input_asset_blinds.push_back(it->second.GetOutputAssetBlindingFactor(*pwallet, prevout.n));
+        input_assets.push_back(it->second.GetOutputAsset(*pwallet, prevout.n));
+        input_amounts.push_back(it->second.GetOutputValueOut(*pwallet, prevout.n));
         if (it->second.tx->vout[prevout.n].nValue.IsCommitment()) {
             n_blinded_ins += 1;
         }
@@ -6904,9 +6904,9 @@ static RPCHelpMan listissuances()
                 CalculateReissuanceToken(token, entropy, issuance.nAmount.IsCommitment());
                 item.pushKV("isreissuance", false);
                 item.pushKV("token", token.GetHex());
-                CAmount itamount = pwallet->GetIssuanceAmount(*pcoin, vinIndex, true);
+                CAmount itamount = pcoin->GetIssuanceAmount(*pwallet, vinIndex, true);
                 item.pushKV("tokenamount", (itamount == -1 ) ? -1 : ValueFromAmount(itamount));
-                item.pushKV("tokenblinds", pwallet->GetIssuanceBlindingFactor(*pcoin, vinIndex, true).GetHex());
+                item.pushKV("tokenblinds", pcoin->GetIssuanceBlindingFactor(*pwallet, vinIndex, true).GetHex());
                 item.pushKV("entropy", entropy.GetHex());
             } else {
                 CalculateAsset(asset, issuance.assetEntropy);
@@ -6920,9 +6920,9 @@ static RPCHelpMan listissuances()
             if (label != "") {
                 item.pushKV("assetlabel", label);
             }
-            CAmount iaamount = pwallet->GetIssuanceAmount(*pcoin, vinIndex, false);
+            CAmount iaamount = pcoin->GetIssuanceAmount(*pwallet, vinIndex, false);
             item.pushKV("assetamount", (iaamount == -1 ) ? -1 : ValueFromAmount(iaamount));
-            item.pushKV("assetblinds", pwallet->GetIssuanceBlindingFactor(*pcoin, vinIndex, false).GetHex());
+            item.pushKV("assetblinds", pcoin->GetIssuanceBlindingFactor(*pwallet, vinIndex, false).GetHex());
             if (!asset_filter.IsNull() && asset_filter != asset) {
                 continue;
             }

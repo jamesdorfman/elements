@@ -247,7 +247,7 @@ public:
     }
 
     //! make sure balances are recalculated
-    void MarkDirty()
+    void MarkDirty(const CWallet& wallet)
     {
         m_amounts[DEBIT].Reset();
         m_amounts[CREDIT].Reset();
@@ -255,7 +255,7 @@ public:
         m_amounts[AVAILABLE_CREDIT].Reset();
         fChangeCached = false;
         m_is_cache_empty = true;
-        WipeUnknownBlindingData();
+        WipeUnknownBlindingData(wallet);
     }
 
     /** True if only scriptSigs are different */
@@ -264,8 +264,6 @@ public:
     bool InMempool() const;
 
     int64_t GetTxTime() const;
-
-    void WipeUnknownBlindingData();
 
     bool isAbandoned() const { return m_confirm.status == CWalletTx::ABANDONED; }
     void setAbandoned()
@@ -285,10 +283,53 @@ public:
     bool IsCoinBase() const { return tx->IsCoinBase(); }
 
     // ELEMENTS
+private:
+    /* Computes, stores and returns the unblinded info, or retrieves if already computed previously.
+    * @param[in]    map_index - Where to store the blinding data. Issuance data is stored after the output data, with additional index offset calculated via GetPseudoInputOffset
+    * @param[in]    vchRangeproof - The rangeproof to unwind
+    * @param[in]    conf_value - The value to unblind
+    * @param[in]    conf_asset - The asset to unblind
+    * @param[in]    nonce - The nonce used to ECDH with the blinding key. This is null for issuance as blinding key is directly used as nonce
+    * @param[in]    scriptPubKey - The script being committed to by the rangeproof
+    * @param[out]   blinding_pubkey_out - Pointer to the recovered pubkey of the destination
+    * @param[out]   value_out - Pointer to the CAmount where the unblinded amount will be stored
+    * @param[out]   value_factor_out - Pointer to the recovered value blinding factor of the output
+    * @param[out]   asset_out - Pointer to the recovered underlying asset type
+    * @param[out]   asset_factor_out - Pointer to the recovered asset blinding factor of the output
+    */
+    void GetBlindingData(const CWallet& wallet, const unsigned int map_index, const std::vector<unsigned char>& vchRangeproof, const CConfidentialValue& conf_value, const CConfidentialAsset& conf_asset, const CConfidentialNonce nonce, const CScript& scriptPubKey, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const;
+    void WipeUnknownBlindingData(const CWallet& wallet);
+
+public:
+    // For use in wallet transaction creation to remember 3rd party values
+    // Unneeded for issuance.
+    void SetBlindingData(const unsigned int output_index, const CPubKey& blinding_pubkey, const CAmount value, const uint256& value_factor, const CAsset& asset, const uint256& asset_factor);
+
+    // Convenience method to retrieve all blinding data at once, for an ordinary non-issuance tx
+    void GetNonIssuanceBlindingData(const CWallet& wallet, const unsigned int output_index, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const;
+
+    //! Returns either the blinding factor (if it is to us) or 0
+    uint256 GetOutputAmountBlindingFactor(const CWallet& wallet, unsigned int output_index) const;
+    uint256 GetOutputAssetBlindingFactor(const CWallet& wallet, unsigned int output_index) const;
+    //! Get the issuance CAssets for both the asset itself and the issuing tokens
+    void GetIssuanceAssets(unsigned int vinIndex, CAsset* out_asset, CAsset* out_reissuance_token) const;
+    // ! Return map of issued assets at input_index
+    CAmountMap GetIssuanceAssets(const CWallet& wallet, unsigned int input_index) const;
+    // ! Returns receiver's blinding pubkey
+    CPubKey GetOutputBlindingPubKey(const CWallet& wallet, unsigned int output_index) const;
+    //! Get the issuance blinder for either the asset itself or the issuing tokens
+    uint256 GetIssuanceBlindingFactor(const CWallet& wallet, unsigned int input_index, bool reissuance_token) const;
+    //! Get the issuance amount for either the asset itself or the issuing tokens
+    CAmount GetIssuanceAmount(const CWallet& wallet, unsigned int input_index, bool reissuance_token) const;
+
+    //! Get the mapValue offset for a specific vin index and type of issuance pseudo-input
+    unsigned int GetPseudoInputOffset(unsigned int input_index, bool reissuance_token) const;
+    // END ELEMENTS
+
     //! Returns either the value out (if it is known) or -1
-    CAmount GetOutputValueOut(unsigned int ouput_index) const;
+    CAmount GetOutputValueOut(const CWallet& wallet, unsigned int ouput_index) const;
     //! Returns the underlying asset type, or 0 if unknown
-    CAsset GetOutputAsset(unsigned int output_index) const;
+    CAsset GetOutputAsset(const CWallet& wallet, unsigned int output_index) const;
 
     // END ELEMENTS
 
