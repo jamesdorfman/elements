@@ -3738,31 +3738,31 @@ ScriptPubKeyMan* CWallet::AddWalletDescriptor(WalletDescriptor& desc, const Flat
     return spk_man;
 }
 
-CAmount CWalletTx::GetOutputValueOut(const CWalletTx& wtx, unsigned int output_index) const {
+CAmount CWalletTx::GetOutputValueOut(unsigned int output_index) {
     CAmount ret;
-    GetNonIssuanceBlindingData(wtx, output_index, nullptr, &ret, nullptr, nullptr, nullptr);
+    GetNonIssuanceBlindingData(*this, output_index, nullptr, &ret, nullptr, nullptr, nullptr);
     return ret;
 }
 
-uint256 CWalletTx::GetOutputAmountBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const {
+uint256 CWallet::GetOutputAmountBlindingFactor(const CWalletTx& wtx, unsigned int output_index) {
     uint256 ret;
     GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, &ret, nullptr, nullptr);
     return ret;
 }
 
-uint256 CWalletTx::GetOutputAssetBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const {
+uint256 CWallet::GetOutputAssetBlindingFactor(const CWalletTx& wtx, unsigned int output_index) {
     uint256 ret;
     GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, nullptr, nullptr, &ret);
     return ret;
 }
 
-CAsset CWalletTx::GetOutputAsset(const CWalletTx& wtx, unsigned int output_index) const {
+CAsset CWalletTx::GetOutputAsset(unsigned int output_index) {
     CAsset ret;
-    GetNonIssuanceBlindingData(wtx, output_index, nullptr, nullptr, nullptr, &ret, nullptr);
+    GetNonIssuanceBlindingData(*this, output_index, nullptr, nullptr, nullptr, &ret, nullptr);
     return ret;
 }
 
-CPubKey CWalletTx::GetOutputBlindingPubKey(const CWalletTx& wtx, unsigned int output_index) const {
+CPubKey CWallet::GetOutputBlindingPubKey(const CWalletTx& wtx, unsigned int output_index) {
     CPubKey ret;
     GetNonIssuanceBlindingData(wtx, output_index, &ret, nullptr, nullptr, nullptr, nullptr);
     return ret;

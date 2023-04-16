@@ -78,8 +78,8 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     }
     // ELEMENTS: Retrieve unblinded information about outputs
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i) {
-        result.txout_amounts.emplace_back(wallet.GetOutputValueOut(wtx, i));
-        result.txout_assets.emplace_back(wallet.GetOutputAsset(wtx, i));
+        result.txout_amounts.emplace_back(wtx.GetOutputValueOut(i));
+        result.txout_assets.emplace_back(wtx.GetOutputAsset(i));
     }
     result.credit = CachedTxGetCredit(wallet, wtx, ISMINE_ALL);
     result.debit = CachedTxGetDebit(wallet, wtx, ISMINE_ALL);

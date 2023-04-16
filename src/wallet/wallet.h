@@ -634,14 +634,9 @@ public:
     // Convenience method to retrieve all blinding data at once, for an ordinary non-issuance tx
     void GetNonIssuanceBlindingData(const CWalletTx& wtx, const unsigned int output_index, CPubKey* blinding_pubkey_out, CAmount* value_out, uint256* value_factor_out, CAsset* asset_out, uint256* asset_factor_out) const;
 
-    //! Returns either the value out (if it is known) or -1
-    CAmount GetOutputValueOut(const CWalletTx& wtx, unsigned int ouput_index) const;
-
     //! Returns either the blinding factor (if it is to us) or 0
     uint256 GetOutputAmountBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const;
     uint256 GetOutputAssetBlindingFactor(const CWalletTx& wtx, unsigned int output_index) const;
-    //! Returns the underlying asset type, or 0 if unknown
-    CAsset GetOutputAsset(const CWalletTx& wtx, unsigned int output_index) const;
     //! Get the issuance CAssets for both the asset itself and the issuing tokens
     void GetIssuanceAssets(const CWalletTx& wtx, unsigned int vinIndex, CAsset* out_asset, CAsset* out_reissuance_token) const;
     // ! Return map of issued assets at input_index

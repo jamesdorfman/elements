@@ -2237,7 +2237,7 @@ RPCHelpMan dumpissuanceblindingkey()
             throw JSONRPCError(RPC_WALLET_ERROR, "Transaction input has no issuance");
         }
         // We can actually deblind the input
-        if (pcoin->GetIssuanceAmount(vindex, false) != -1 ) {
+        if (pwallet->GetIssuanceAmount(*pcoin, vindex, false) != -1 ) {
             CScript blindingScript(CScript() << OP_RETURN << std::vector<unsigned char>(pcoin->tx->vin[vindex].prevout.hash.begin(), pcoin->tx->vin[vindex].prevout.hash.end()) << pcoin->tx->vin[vindex].prevout.n);
             CKey key;
             key = pwallet->GetBlindingKey(&blindingScript);

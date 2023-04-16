@@ -52,11 +52,11 @@ CAmountMap OutputGetCredit(const CWallet& wallet, const CWalletTx& wtx, const is
     CAmountMap nCredit;
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i) {
         if (wallet.IsMine(wtx.tx->vout[i]) & filter) {
-            CAmount credit = std::max<CAmount>(0, wallet.GetOutputValueOut(wtx, i));
+            CAmount credit = std::max<CAmount>(0, wtx.GetOutputValueOut(i));
             if (!MoneyRange(credit))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-            nCredit[wallet.GetOutputAsset(wtx, i)] += credit;
+            nCredit[wtx.GetOutputAsset(i)] += credit;
             if (!MoneyRange(nCredit))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
@@ -68,7 +68,7 @@ CAmountMap GetChange(const CWallet& wallet, const CWalletTx& wtx) {
     CAmountMap nChange;
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i) {
         if (OutputIsChange(wallet, wtx.tx->vout[i])) {
-            CAmount change = wallet.GetOutputValueOut(wtx, i);
+            CAmount change = wtx.GetOutputValueOut(i);
             if (change < 0) {
                 continue;
             }
@@ -76,7 +76,7 @@ CAmountMap GetChange(const CWallet& wallet, const CWalletTx& wtx) {
             if (!MoneyRange(change))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-            nChange[wallet.GetOutputAsset(wtx, i)] += change;
+            nChange[wtx.GetOutputAsset(i)] += change;
             if (!MoneyRange(nChange))
                 throw std::runtime_error(std::string(__func__) + ": value out of range");
         }
@@ -242,11 +242,11 @@ CAmountMap CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wt
     {
         if (!wallet.IsSpent(hashTx, i) && (allow_used_addresses || !wallet.IsSpentKey(hashTx, i))) {
             if (wallet.IsMine(wtx.tx->vout[i]) & filter) {
-                CAmount credit = std::max<CAmount>(0, wallet.GetOutputValueOut(wtx, i));
+                CAmount credit = std::max<CAmount>(0, wtx.GetOutputValueOut(i));
                 if (!MoneyRange(credit))
                     throw std::runtime_error(std::string(__func__) + ": value out of range");
 
-                nCredit[wallet.GetOutputAsset(wtx, i)] += std::max<CAmount>(0, wallet.GetOutputValueOut(wtx, i));
+                nCredit[wtx.GetOutputAsset(i)] += std::max<CAmount>(0, wtx.GetOutputValueOut(i));
                 if (!MoneyRange(nCredit))
                     throw std::runtime_error(std::string(__func__) + ": value out of range");
             }
@@ -281,7 +281,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
     for (unsigned int i = 0; i < wtx.tx->vout.size(); ++i)
     {
         const CTxOut& txout = wtx.tx->vout[i];
-        CAmount output_value = wallet.GetOutputValueOut(wtx, i);
+        CAmount output_value = wtx.GetOutputValueOut(i);
         // Don't list unknown assets
         isminetype fIsMine = output_value != -1 ?  wallet.IsMine(txout) : ISMINE_NO;
         // Only need to handle txouts if AT LEAST one of these is true:
@@ -306,7 +306,7 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
             address = CNoDestination();
         }
 
-        COutputEntry output = {address, output_value, (int)i, wallet.GetOutputAsset(wtx, i), wallet.GetOutputAmountBlindingFactor(wtx, i), wallet.GetOutputAssetBlindingFactor(wtx, i)};
+        COutputEntry output = {address, output_value, (int)i, wtx.GetOutputAsset(i), wallet.GetOutputAmountBlindingFactor(wtx, i), wallet.GetOutputAssetBlindingFactor(wtx, i)};
 
         // If we are debited by the transaction, add the output as a "sent" entry
         if (mapDebit > CAmountMap() && !txout.IsFee())
@@ -421,7 +421,7 @@ std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet)
                 if(!ExtractDestination(wtx.tx->vout[i].scriptPubKey, addr))
                     continue;
 
-                CAmount n = wallet.IsSpent(walletEntry.first, i) ? 0 : wallet.GetOutputValueOut(wtx, i);
+                CAmount n = wallet.IsSpent(walletEntry.first, i) ? 0 : wtx.GetOutputValueOut(i);
                 if (n < 0) {
                     continue;
                 }

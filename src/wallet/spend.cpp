@@ -121,7 +121,7 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *walle
     return TxSize{vsize, weight};
 }
 
-void AvailableCoins(const CWallet& wallet, std::vector<COutput> &vCoins, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const CAsset* asset_filter) const
+void AvailableCoins(const CWallet& wallet, std::vector<COutput> &vCoins, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const CAsset* asset_filter)
 {
     AssertLockHeld(wallet.cs_wallet);
 
@@ -203,8 +203,8 @@ void AvailableCoins(const CWallet& wallet, std::vector<COutput> &vCoins, const C
                 continue;
             }
 
-            CAmount outValue = wallet.GetOutputValueOut(wtx, i);
-            CAsset asset = wallet.GetOutputAsset(wtx, i);
+            CAmount outValue = wtx.GetOutputValueOut(i);
+            CAsset asset = wtx.GetOutputAsset(i);
             if (asset_filter && asset != *asset_filter) {
                 continue;
             }
@@ -263,11 +263,11 @@ CAmountMap GetAvailableBalance(const CWallet& wallet, const CCoinControl* coinCo
     AvailableCoins(wallet, vCoins, coinControl);
     for (const COutput& out : vCoins) {
         if (out.fSpendable) {
-            CAmount amt = wallet.GetOutputValueOut(*out.tx, out.i);
+            CAmount amt = out.tx->GetOutputValueOut(out.i);
             if (amt < 0) {
                 continue;
             }
-            balance[wallet.GetOutputAsset(*out.tx, out.i)] += amt;
+            balance[out.tx->GetOutputAsset(out.i)] += amt;
         }
     }
     return balance;
@@ -506,11 +506,11 @@ bool SelectCoins(const CWallet& wallet, const std::vector<COutput>& vAvailableCo
             if (!out.fSpendable)
                  continue;
 
-            CAmount amt = wallet.GetOutputValueOut(*out.tx, out.i);
+            CAmount amt = out.tx->GetOutputValueOut(out.i);
             if (amt < 0) {
                 continue;
             }
-            mapValueRet[wallet.GetOutputAsset(*out.tx, out.i)] += amt;
+            mapValueRet[out.tx->GetOutputAsset(out.i)] += amt;
             setCoinsRet.insert(out.GetInputCoin());
         }
         return (mapValueRet >= mapTargetValue);
@@ -975,7 +975,7 @@ static bool CreateTransactionInternal(
             std::map<uint256, CWalletTx>::const_iterator it = wallet.mapWallet.find(presetInput.hash);
             CTxOut txout;
             if (it != wallet.mapWallet.end()) {
-                 asset = wallet.GetOutputAsset(it->second, presetInput.n);
+                 asset = it->second.GetOutputAsset(presetInput.n);
             } else if (coin_control.GetExternalOutput(presetInput, txout)) {
                 asset = txout.nAsset.GetAsset();
             } else {
@@ -1383,7 +1383,7 @@ static bool CreateTransactionInternal(
     TxSize tx_sizes;
     CMutableTransaction tx_blinded = txNew;
     if (blind_details) {
-        if (!fillBlindDetails(blind_details, wallet, tx_blinded, selected_coins, error)) {
+        if (!fillBlindDetails(blind_details, *wallet, tx_blinded, selected_coins, error)) {
             return false;
         }
         txNew = tx_blinded; // sigh, `fillBlindDetails` may have modified txNew
