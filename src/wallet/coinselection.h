@@ -247,6 +247,8 @@ public:
     void Clear();
 
     void AddInput(const OutputGroup& group);
+    // ELEMENTS
+    void AddInput(const SelectionResult& group);
 
     /** Calculates and stores the waste for this selection via GetSelectionWaste */
     void ComputeAndSetWaste(CAmount change_cost);
@@ -258,6 +260,9 @@ public:
     std::vector<CInputCoin> GetShuffledInputVector() const;
 
     bool operator<(SelectionResult other) const;
+
+    // ELEMENTS
+    bool should_use_effective() const { return m_use_effective; }
 };
 
 std::optional<SelectionResult> SelectCoinsBnB(std::vector<OutputGroup>& utxo_pool, const CAmount& selection_target, const CAmount& cost_of_change);
@@ -272,7 +277,7 @@ std::optional<SelectionResult> SelectCoinsBnB(std::vector<OutputGroup>& utxo_poo
 std::optional<SelectionResult> SelectCoinsSRD(const std::vector<OutputGroup>& utxo_pool, CAmount target_value);
 
 // Original coin selection algorithm as a fallback
-std::optional<SelectionResult> KnapsackSolver(std::vector<OutputGroup>& groups, const CAmount& nTargetValue);
+std::optional<SelectionResult> KnapsackSolver(std::vector<OutputGroup>& groups, const CAmount& nTargetValue, const CAsset& asset);
 
 // ELEMENTS:
 // Knapsack that delegates for every asset individually.
