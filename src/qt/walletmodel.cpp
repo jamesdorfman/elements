@@ -37,6 +37,12 @@
 #include <QSet>
 #include <QTimer>
 
+
+#define SendCoinsRecipient SendAssetsRecipient
+using wallet::CCoinControl;
+using wallet::CRecipient;
+using wallet::DEFAULT_DISABLE_WALLET;
+
 SendAssetsRecipient::SendAssetsRecipient(SendCoinsRecipient r) :
     address(r.address),
     label(r.label),
@@ -48,8 +54,6 @@ SendAssetsRecipient::SendAssetsRecipient(SendCoinsRecipient r) :
     fSubtractFeeFromAmount(r.fSubtractFeeFromAmount)
 {
 }
-
-#define SendCoinsRecipient SendAssetsRecipient
 
 WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, ClientModel& client_model, const PlatformStyle *platformStyle, QObject *parent) :
     QObject(parent),

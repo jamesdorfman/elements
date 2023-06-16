@@ -20,6 +20,7 @@
 #include <wallet/receive.h>
 #include <wallet/wallet.h>
 
+namespace wallet {
 // forward declarations
 UniValue SendMoney(CWallet& wallet, const CCoinControl &coin_control, std::vector<CRecipient> &recipients, mapValue_t map_value, bool verbose, bool ignore_blind_fail);
 RPCHelpMan signrawtransactionwithwallet();
@@ -1897,3 +1898,4 @@ RPCHelpMan getpegoutkeys()
 
 // END ELEMENTS commands
 //
+} // namespace wallet
