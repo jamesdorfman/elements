@@ -97,6 +97,12 @@ public:
         asset(txout.nAsset.GetAsset())
     {}
 
+    COutput(const COutPoint& outpoint, const CTxOut& txout, int depth, int input_bytes, bool spendable, bool solvable, bool safe, int64_t time, bool from_me, const uint256& bf_value, const uint256& bf_asset)
+        : COutput(outpoint, txout, depth, input_bytes, spendable, solvable, safe, time, from_me) {
+        this->bf_value = bf_value;
+        this->bf_asset = bf_asset;
+    }
+
     std::string ToString() const;
 
     bool operator<(const COutput& rhs) const {
@@ -294,7 +300,7 @@ std::optional<SelectionResult> KnapsackSolver(std::vector<OutputGroup>& groups, 
 std::optional<SelectionResult> KnapsackSolver(std::vector<OutputGroup>& groups, const CAmountMap& mapTargetValue, FastRandomContext& rng);
 
 // Get coin selection waste for a map of asset->amount.
-[[nodiscard]] CAmount GetSelectionWaste(const std::set<CInputCoin>& inputs, CAmount change_cost, const CAmountMap& target_map, bool use_effective_value);
+[[nodiscard]] CAmount GetSelectionWaste(const std::set<COutput>& inputs, CAmount change_cost, const CAmountMap& target_map, bool use_effective_value);
 } // namespace wallet
 
 #endif // BITCOIN_WALLET_COINSELECTION_H

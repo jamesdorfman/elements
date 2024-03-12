@@ -32,26 +32,9 @@ int GetTxSpendSize(const CWallet& wallet, const CWalletTx& wtx, unsigned int out
     return CalculateMaximumSignedInputSize(wtx.tx->vout[out], &wallet, use_max_sig);
 }
 
-<<<<<<< HEAD
-std::string COutput::ToString(const CWallet& wallet) const
-{
-    return strprintf("COutput(%s, %d, %d) [%s] [%s]", tx->GetHash().ToString(), i, nDepth, FormatMoney(tx->GetOutputValueOut(wallet, i)), tx->GetOutputAsset(wallet, i).GetHex());
-}
-
 // Helper for producing a max-sized low-S low-R signature (eg 71 bytes)
 // or a max-sized low-S signature (e.g. 72 bytes) if use_max_sig is true
-bool DummySignInput(const SigningProvider& provider, CMutableTransaction& tx, const size_t nIn, const CTxOut& txout, bool use_max_sig)
-||||||| f0c9ba2b48
-std::string COutput::ToString() const
-{
-    return strprintf("COutput(%s, %d, %d) [%s]", tx->GetHash().ToString(), i, nDepth, FormatMoney(tx->tx->vout[i].nValue));
-}
-
-int CalculateMaximumSignedInputSize(const CTxOut& txout, const SigningProvider* provider, bool use_max_sig)
-=======
-int CalculateMaximumSignedInputSize(const CTxOut& txout, const SigningProvider* provider, bool use_max_sig)
->>>>>>> 3740cdd125
-{
+bool DummySignInput(const SigningProvider& provider, CMutableTransaction& tx, const size_t nIn, const CTxOut& txout, bool use_max_sig) {
     // Fill in dummy signatures for fee calculation.
     const CScript& scriptPubKey = txout.scriptPubKey;
     SignatureData sigdata;
@@ -270,6 +253,8 @@ void AvailableCoins(const CWallet& wallet, std::vector<COutput> &vCoins, const C
 
             CAmount outValue = wtx.GetOutputValueOut(wallet, i);
             CAsset asset = wtx.GetOutputAsset(wallet, i);
+            uint256 bfValue = wtx.GetOutputAmountBlindingFactor(wallet, i);
+            uint256 bfAsset = wtx.GetOutputAssetBlindingFactor(wallet, i);
             if (asset_filter && asset != *asset_filter) {
                 continue;
             }
@@ -301,7 +286,7 @@ void AvailableCoins(const CWallet& wallet, std::vector<COutput> &vCoins, const C
             bool spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO) && (coinControl && coinControl->fAllowWatchOnly && solvable));
             int input_bytes = GetTxSpendSize(wallet, wtx, i, (coinControl && coinControl->fAllowWatchOnly));
 
-            vCoins.emplace_back(COutPoint(wtx.GetHash(), i), wtx.tx->vout.at(i), nDepth, input_bytes, spendable, solvable, safeTx, wtx.GetTxTime(), tx_from_me);
+            vCoins.emplace_back(COutPoint(wtx.GetHash(), i), wtx.tx->vout.at(i), nDepth, input_bytes, spendable, solvable, safeTx, wtx.GetTxTime(), tx_from_me, bfValue, bfAsset);
 
             // Checks the sum amount of all UTXO's.
             if (nMinimumSumAmount != MAX_MONEY) {
@@ -328,20 +313,12 @@ CAmountMap GetAvailableBalance(const CWallet& wallet, const CCoinControl* coinCo
     std::vector<COutput> vCoins;
     AvailableCoins(wallet, vCoins, coinControl);
     for (const COutput& out : vCoins) {
-<<<<<<< HEAD
-        if (out.fSpendable) {
-            CAmount amt = out.tx->GetOutputValueOut(wallet, out.i);
+        if (out.spendable) {
+            CAmount amt = out.value;
             if (amt < 0) {
                 continue;
             }
-            balance[out.tx->GetOutputAsset(wallet, out.i)] += amt;
-||||||| f0c9ba2b48
-        if (out.fSpendable) {
-            balance += out.tx->tx->vout[out.i].nValue;
-=======
-        if (out.spendable) {
-            balance += out.txout.nValue;
->>>>>>> 3740cdd125
+            balance[out.asset] += amt;
         }
     }
     return balance;
@@ -365,19 +342,13 @@ const CTxOut& FindNonChangeParentOutput(const CWallet& wallet, const CTransactio
     return ptx->vout[n];
 }
 
-<<<<<<< HEAD
-std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
-||||||| f0c9ba2b48
-std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet)
-=======
 const CTxOut& FindNonChangeParentOutput(const CWallet& wallet, const COutPoint& outpoint)
 {
     AssertLockHeld(wallet.cs_wallet);
     return FindNonChangeParentOutput(wallet, *wallet.GetWalletTx(outpoint.hash)->tx, outpoint.n);
 }
 
-std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet)
->>>>>>> 3740cdd125
+std::map<CTxDestination, std::vector<COutput>> ListCoins(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet)
 {
     AssertLockHeld(wallet.cs_wallet);
 
@@ -430,15 +401,7 @@ std::vector<OutputGroup> GroupOutputs(const CWallet& wallet, const std::vector<C
             if (!output.spendable) continue;
 
             size_t ancestors, descendants;
-<<<<<<< HEAD
-            wallet.chain().getTransactionAncestry(output.tx->GetHash(), ancestors, descendants);
-            CInputCoin input_coin = output.GetInputCoin(wallet);
-||||||| f0c9ba2b48
-            wallet.chain().getTransactionAncestry(output.tx->GetHash(), ancestors, descendants);
-            CInputCoin input_coin = output.GetInputCoin();
-=======
             wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, descendants);
->>>>>>> 3740cdd125
 
             // Make an OutputGroup containing just this output
             OutputGroup group{coin_sel_params};
@@ -463,18 +426,8 @@ std::vector<OutputGroup> GroupOutputs(const CWallet& wallet, const std::vector<C
         if (!output.spendable) continue;
 
         size_t ancestors, descendants;
-<<<<<<< HEAD
-        wallet.chain().getTransactionAncestry(output.tx->GetHash(), ancestors, descendants);
-        CInputCoin input_coin = output.GetInputCoin(wallet);
-        CScript spk = input_coin.txout.scriptPubKey;
-||||||| f0c9ba2b48
-        wallet.chain().getTransactionAncestry(output.tx->GetHash(), ancestors, descendants);
-        CInputCoin input_coin = output.GetInputCoin();
-        CScript spk = input_coin.txout.scriptPubKey;
-=======
         wallet.chain().getTransactionAncestry(output.outpoint.hash, ancestors, descendants);
         CScript spk = output.txout.scriptPubKey;
->>>>>>> 3740cdd125
 
         std::vector<OutputGroup>& groups = spk_to_groups_map[spk];
 
@@ -540,7 +493,7 @@ std::optional<SelectionResult> AttemptSelection(const CWallet& wallet, const CAm
         std::vector<OutputGroup> asset_groups;
         for (OutputGroup g : positive_groups) {
             bool add = true;
-            for (CInputCoin c : g.m_outputs) {
+            for (COutput c : g.m_outputs) {
                 if (c.asset != asset) {
                     add = false;
                     break;
@@ -602,34 +555,18 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
     // coin control -> return all selected outputs (we want all selected to go into the transaction for sure)
     if (coin_control.HasSelected() && !coin_control.fAllowOtherInputs)
     {
-<<<<<<< HEAD
         for (const COutput& out : vCoins)
         {
-            if (!out.fSpendable) continue;
+            if (!out.spendable) continue;
 
-            CAmount amt = out.tx->GetOutputValueOut(wallet, out.i);
+            CAmount amt = out.value;
             if (amt < 0) {
                 continue;
             }
-            /* Set depth, from_me, ancestors, and descendants to 0 or false as these don't matter for preset inputs as no actual selection is being done.
-||||||| f0c9ba2b48
-        for (const COutput& out : vCoins) {
-            if (!out.fSpendable) continue;
-            /* Set depth, from_me, ancestors, and descendants to 0 or false as these don't matter for preset inputs as no actual selection is being done.
-=======
-        for (const COutput& out : vCoins) {
-            if (!out.spendable) continue;
             /* Set ancestors and descendants to 0 as these don't matter for preset inputs as no actual selection is being done.
->>>>>>> 3740cdd125
              * positive_only is set to false because we want to include all preset inputs, even if they are dust.
              */
-<<<<<<< HEAD
-            preset_inputs.Insert(out.GetInputCoin(wallet), 0, false, 0, 0, false);
-||||||| f0c9ba2b48
-            preset_inputs.Insert(out.GetInputCoin(), 0, false, 0, 0, false);
-=======
             preset_inputs.Insert(out, /*ancestors=*/ 0, /*descendants=*/ 0, /*positive_only=*/ false);
->>>>>>> 3740cdd125
         }
         SelectionResult result(mapTargetValue);
         result.AddInput(preset_inputs);
@@ -646,7 +583,9 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
         int input_bytes = -1;
         CTxOut txout;
         std::map<uint256, CWalletTx>::const_iterator it = wallet.mapWallet.find(outpoint.hash);
-        CInputCoin coin(outpoint, txout, 0); // dummy initialization
+
+        /* Set some defaults for depth, spendable, solvable, safe, time, and from_me as these don't matter for preset inputs since no selection is being done. */
+        COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
         if (it != wallet.mapWallet.end()) {
             const CWalletTx& wtx = it->second;
             // Clearly invalid input, fail
@@ -659,7 +598,7 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
             }
             input_bytes = GetTxSpendSize(wallet, wtx, outpoint.n, false);
             txout = wtx.tx->vout.at(outpoint.n);
-            coin = CInputCoin(wallet, &wtx, outpoint.n, input_bytes);
+            output = COutput(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
         } else {
             // The input is external. We did not find the tx in mapWallet.
             if (!coin_control.GetExternalOutput(outpoint, txout)) {
@@ -678,51 +617,23 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
             if (!txout.nValue.IsExplicit() || !txout.nAsset.IsExplicit()) {
                 return std::nullopt; // We can't get its value, so abort
             }
-            coin = CInputCoin(outpoint, txout, input_bytes);
+            output = COutput(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
         }
         // If available, override calculated size with coin control specified size
         if (coin_control.HasInputWeight(outpoint)) {
             input_bytes = GetVirtualTransactionSize(coin_control.GetInputWeight(outpoint), 0, 0);
-            coin = CInputCoin(outpoint, txout, input_bytes);
+            output = COutput(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
         }
 
-<<<<<<< HEAD
-        if (coin.m_input_bytes == -1) {
-            // error = _("Missing solving data for estimating transaction size"); // ELEMENTS
-||||||| f0c9ba2b48
-        CInputCoin coin(outpoint, txout, input_bytes);
-        if (coin.m_input_bytes == -1) {
-=======
         if (input_bytes == -1) {
->>>>>>> 3740cdd125
             return std::nullopt; // Not solvable, can't estimate size for fee
         }
-<<<<<<< HEAD
-        coin.effective_value = coin.value - coin_selection_params.m_effective_feerate.GetFee(coin.m_input_bytes);
-||||||| f0c9ba2b48
-        coin.effective_value = coin.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(coin.m_input_bytes);
-=======
 
-        /* Set some defaults for depth, spendable, solvable, safe, time, and from_me as these don't matter for preset inputs since no selection is being done. */
-        COutput output(outpoint, txout, /*depth=*/ 0, input_bytes, /*spendable=*/ true, /*solvable=*/ true, /*safe=*/ true, /*time=*/ 0, /*from_me=*/ false);
-        output.effective_value = output.txout.nValue - coin_selection_params.m_effective_feerate.GetFee(output.input_bytes);
->>>>>>> 3740cdd125
+        output.effective_value = output.value - coin_selection_params.m_effective_feerate.GetFee(output.input_bytes);
         if (coin_selection_params.m_subtract_fee_outputs) {
-<<<<<<< HEAD
-            value_to_select[coin.asset] -= coin.value;
-||||||| f0c9ba2b48
-            value_to_select -= coin.txout.nValue;
-=======
-            value_to_select -= output.txout.nValue;
->>>>>>> 3740cdd125
+            value_to_select[output.asset] -= output.value;
         } else {
-<<<<<<< HEAD
-            value_to_select[coin.asset] -= coin.effective_value;
-||||||| f0c9ba2b48
-            value_to_select -= coin.effective_value;
-=======
-            value_to_select -= output.effective_value;
->>>>>>> 3740cdd125
+            value_to_select[output.asset] -= output.effective_value;
         }
         preset_coins.insert(outpoint);
         /* Set ancestors and descendants to 0 as they don't matter for preset inputs since no actual selection is being done.
@@ -734,13 +645,7 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
     // remove preset inputs from vCoins so that Coin Selection doesn't pick them.
     for (std::vector<COutput>::iterator it = vCoins.begin(); it != vCoins.end() && coin_control.HasSelected();)
     {
-<<<<<<< HEAD
-        if (setPresetCoins.count(it->GetInputCoin(wallet)))
-||||||| f0c9ba2b48
-        if (setPresetCoins.count(it->GetInputCoin()))
-=======
         if (preset_coins.count(it->outpoint))
->>>>>>> 3740cdd125
             it = vCoins.erase(it);
         else
             ++it;
@@ -755,7 +660,7 @@ std::optional<SelectionResult> SelectCoins(const CWallet& wallet, const std::vec
 
     // ELEMENTS: filter coins for assets we are interested in; always keep policyAsset for fees
     for (std::vector<COutput>::iterator it = vCoins.begin(); it != vCoins.end() && coin_control.HasSelected();) {
-        CAsset asset = it->GetInputCoin(wallet).asset;
+        CAsset asset = it->asset;
         if (asset != ::policyAsset && mapTargetValue.find(asset) == mapTargetValue.end()) {
             it = vCoins.erase(it);
         } else {
@@ -945,11 +850,11 @@ static void resetBlindDetails(BlindDetails* det, bool preserve_output_data = fal
     }
 }
 
-static bool fillBlindDetails(BlindDetails* det, CWallet* wallet, CMutableTransaction& txNew, std::vector<CInputCoin>& selected_coins, bilingual_str& error) {
+static bool fillBlindDetails(BlindDetails* det, CWallet* wallet, CMutableTransaction& txNew, std::vector<COutput>& selected_coins, bilingual_str& error) {
     int num_inputs_blinded = 0;
 
     // Fill in input blinding details
-    for (const CInputCoin& coin : selected_coins) {
+    for (const COutput& coin : selected_coins) {
         det->i_amount_blinds.push_back(coin.bf_value);
         det->i_asset_blinds.push_back(coin.bf_asset);
         det->i_assets.push_back(coin.asset);
